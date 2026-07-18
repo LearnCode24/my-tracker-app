@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<meta name="apple-mobile-web-app-title" content="Chronos" />
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<title>ChronosOptima</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; }
+  body {
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    padding: 16px;
+    transition: background 0.7s ease;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .card { background: #0A0A0A; border: 1px solid #262626; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: #737373; margin-bottom: 10px; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .display { font-family: 'Space Grotesk', sans-serif; }
+
+  .header-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+  .flap-row { display: flex; font-size: 1.5rem; }
+  .flap {
+    width: 0.72em; height: 1.3em; margin: 0 1.5px; border-radius: 3px;
+    background: #000; border: 1px solid rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0;
+  }
+  .flap::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(255,255,255,0.2); }
+  .flap span { font-family: 'IBM Plex Mono', monospace; }
+  .flap.space { border: none; background: transparent; }
+
+  .week-strip { display: flex; justify-content: space-between; gap: 4px; }
+  .day-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 2px; border-radius: 12px; background: transparent; border: 1px solid transparent; cursor: pointer; }
+  .day-col.active { background: #171717; }
+  .day-col.today { border-color: #3182CE; }
+  .day-col .dname { font-size: 10px; color: #737373; }
+  .day-col .dnum { font-size: 12px; color: #9CA3AF; font-family: 'IBM Plex Mono', monospace; }
+  .day-col.active .dnum { color: #fff; }
+  .bars { display: flex; gap: 3px; align-items: flex-end; height: 36px; }
+  .bar-track { width: 5px; height: 36px; border-radius: 4px; background: #1a1a1a; overflow: hidden; display: flex; align-items: flex-end; }
+  .bar-fill { width: 100%; transition: height 0.5s ease; }
+  .day-col .pct { font-size: 10px; color: #737373; font-family: 'IBM Plex Mono', monospace; }
+
+  .rings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; justify-items: center; }
+  @media (min-width: 560px) { .rings-grid { grid-template-columns: repeat(5, 1fr); } }
+  .ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ring-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .ring-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: #a3a3a3; }
+  .ring-sub { font-size: 12px; color: #fff; font-family: 'IBM Plex Mono', monospace; }
+
+  .two-col { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 640px) { .two-col { grid-template-columns: 1fr 1fr; } }
+
+  button { font-family: inherit; border: none; cursor: pointer; }
+  .btn { padding: 8px 12px; border-radius: 10px; font-size: 12px; background: #171717; color: #9CA3AF; }
+  .btn.primary { background: #3182CE; color: #000; font-weight: 600; }
+  .btn.amber { background: #D9A54D; color: #1A1108; font-weight: 600; }
+  .btn-row { display: flex; gap: 8px; justify-content: center; }
+  .toggle-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .toggle-row .btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+  input[type="range"] { flex: 1; accent-color: #3182CE; }
+  input[type="number"] { width: 100%; margin-top: 4px; border-radius: 8px; padding: 6px 8px; font-size: 13px; background: #171717; color: #fff; border: none; font-family: 'IBM Plex Mono', monospace; }
+  .slider-row { display: flex; align-items: center; gap: 10px; }
+  .val { width: 60px; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+  .val-input { width: 64px; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 13px; background: #171717; color: #fff; border: none; border-radius: 8px; padding: 6px 8px; }
+  .val-input:focus { outline: 1px solid #3182CE; }
+  .unit-label { font-size: 11px; color: #737373; flex-shrink: 0; }
+
+  .progress-bar { height: 6px; border-radius: 4px; background: #1F1F1F; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; transition: width 0.5s ease; }
+
+  .meals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .meal-btn { display: flex; align-items: center; gap: 5px; padding: 8px 8px; border-radius: 8px; font-size: 11px; text-transform: capitalize; background: #171717; color: #9CA3AF; }
+  .meal-btn.done { background: #3182CE; color: #000; }
+
+  textarea { width: 100%; background: #171717; color: #fff; border: none; border-radius: 8px; padding: 8px 10px; font-family: 'Inter', sans-serif; font-size: 13px; resize: vertical; margin-top: 4px; }
+  .note-field { margin-bottom: 12px; }
+  .note-field:last-child { margin-bottom: 0; }
+  .note-field-label { font-size: 11px; color: #9CA3AF; display: flex; align-items: center; gap: 6px; }
+  .notes-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 640px) { .notes-grid { grid-template-columns: 1fr 1fr; } }
+
+  .rec-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 600; background: #171717; color: #fff; }
+  .rec-btn.active { background: #C0392B; color: #fff; }
+  .rec-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .rec-btn.active .rec-dot { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+  .clip-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .clip-row { display: flex; align-items: center; gap: 8px; background: #121212; border-radius: 10px; padding: 8px 10px; }
+  .clip-time { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9CA3AF; width: 52px; flex-shrink: 0; }
+  .clip-row audio { flex: 1; height: 32px; }
+  .clip-del { background: transparent; color: #737373; font-size: 16px; padding: 4px 8px; flex-shrink: 0; }
+  .clip-empty { font-size: 12px; color: #525252; font-style: italic; text-align: center; padding: 10px 0; }
+  .mic-warning { font-size: 11px; color: #D9A54D; margin-top: 10px; }
+
+  .footer-note { text-align: center; font-size: 11px; color: #525252; margin-top: 20px; }
+  .small-note { font-size: 11px; color: #D9A54D; font-family: 'IBM Plex Mono', monospace; margin-top: 10px; }
+  .muted { color: #737373; font-size: 12px; }
+  a { color: #3182CE; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <div class="header-row">
+      <div>
+        <div class="label" style="margin-bottom:4px;">ChronosOptima</div>
+        <div class="flap-row" id="flapHeader"></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="label" style="margin-bottom:2px;">This week</div>
+        <div class="display" id="weekAvg" style="font-size:24px;font-weight:600;">0%</div>
+      </div>
+    </div>
+    <div id="notToday" class="small-note" style="display:none;"></div>
+  </div>
+
+  <div class="card">
+    <div class="header-row" style="margin-bottom:10px;">
+      <span class="label" style="margin:0;">Week Tracker · auto-saved</span>
+      <button class="btn" id="todayBtn" style="display:none;">Today</button>
+    </div>
+    <div class="week-strip" id="weekStrip"></div>
+  </div>
+
+  <div class="card">
+    <div class="rings-grid" id="ringsGrid"></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="header-row" style="margin-bottom:14px;">
+        <span class="label" style="margin:0;">Focus Sprint · 45 min</span>
+        <div class="btn-row" id="focusToggle"></div>
+      </div>
+      <div class="flap-row" id="timerFlap" style="font-size:2.2rem;justify-content:center;margin-bottom:14px;"></div>
+      <div class="btn-row">
+        <button class="btn primary" id="startBtn">▶ Start</button>
+        <button class="btn" id="resetBtn">↺ Reset</button>
+      </div>
+      <div id="flashMsg" class="small-note" style="text-align:center;color:#4FA8A0;display:none;"></div>
+    </div>
+
+    <div class="card" id="commuteCard">
+      <div class="label">Split Commute · Tue–Sat</div>
+      <div id="commuteBody"></div>
+    </div>
+
+    <div class="card">
+      <div class="label" id="skillsLabel">Skills</div>
+      <div class="slider-row">
+        <input type="range" id="skillsSlider" min="0" step="5" />
+        <input type="number" class="val-input" id="skillsInput" step="5" min="0" />
+        <span class="unit-label">min</span>
+      </div>
+      <div class="muted" id="skillsTarget" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="label" id="studyLabel">Study</div>
+      <div class="slider-row">
+        <input type="range" id="studySlider" min="0" step="5" />
+        <input type="number" class="val-input" id="studyInput" step="5" min="0" />
+        <span class="unit-label">min</span>
+      </div>
+      <div class="muted" id="studyTarget" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="label" id="contentLabel"></div>
+      <div class="slider-row">
+        <input type="range" id="contentSlider" min="0" step="5" />
+        <input type="number" class="val-input" id="contentInput" step="5" min="0" />
+        <span class="unit-label">min</span>
+      </div>
+      <div class="muted" id="contentTarget" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Talk — 1.5h daily, every day</div>
+      <div class="slider-row">
+        <input type="range" id="talkSlider" min="0" max="90" step="5" />
+        <input type="number" class="val-input" id="talkInput" step="5" min="0" max="90" />
+        <span class="unit-label">min</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Daily Lifestyle Anchors</div>
+    <div class="two-col" style="grid-template-columns: 1fr; gap: 18px;">
+      <div style="display:flex;flex-wrap:wrap;gap:18px;">
+        <div style="flex:1;min-width:180px;">
+          <div class="muted" style="margin-bottom:6px;">🌙 Sleep · target 8h</div>
+          <div style="display:flex;gap:8px;">
+            <label style="flex:1;font-size:11px;color:#737373;">Night
+              <input type="number" id="sleepNight" min="0" max="12" step="0.25" />
+            </label>
+            <label style="flex:1;font-size:11px;color:#737373;">Nap
+              <input type="number" id="sleepNap" min="0" max="4" step="0.25" />
+            </label>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="sleepBar" style="background:#3182CE;width:0%;"></div></div>
+        </div>
+        <div style="flex:1;min-width:180px;">
+          <div class="muted" style="margin-bottom:6px;">💪 Exercise · target 30m</div>
+          <input type="number" id="exerciseMin" min="0" max="180" step="5" />
+          <div class="progress-bar"><div class="progress-fill" id="exerciseBar" style="background:#4FA8A0;width:0%;"></div></div>
+        </div>
+        <div style="flex:1;min-width:180px;">
+          <div class="muted" style="margin-bottom:6px;">🍽 Meals</div>
+          <div class="meals-grid" id="mealsGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="collegeCard" style="display:none;align-items:center;justify-content:space-between;flex-direction:row;">
+    <div class="muted">College anchor: <span class="mono" id="collegeTime" style="color:#fff;"></span></div>
+    <button class="btn" id="collegeBtn"></button>
+  </div>
+
+  <div class="card">
+    <div class="label">🗒 Day Journal</div>
+    <textarea id="dayNote" rows="3" placeholder="How did today go overall?"></textarea>
+  </div>
+
+  <div class="card">
+    <div class="label">📝 Task Notes</div>
+    <div class="notes-grid" id="taskNotes"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">🎙 Voice Journal</div>
+    <button class="rec-btn" id="recBtn"><span class="rec-dot"></span><span id="recBtnLabel">Start recording</span></button>
+    <div id="micWarning" class="mic-warning" style="display:none;">Microphone access was denied or unavailable. Allow microphone permission for this site to record.</div>
+    <div class="clip-list" id="clipList"></div>
+  </div>
+
+  <div class="footer-note">Progress saves automatically on this device · tap any day in the Week Tracker to review or plan it</div>
+</div>
+
+<script>
+/* ---------- data ---------- */
+const WEEK = [
+  { key:"mon", short:"MON", label:"Monday", college:null, skills:5.0, study:2.0, content:3.0, contentType:"Type 1 — AI / Avatar", talk:1.5, commute:false },
+  { key:"tue", short:"TUE", label:"Tuesday", college:"05:30 – 13:00", skills:3.0, study:1.0, content:2.5, contentType:"Type 2 — Self-Filming", talk:1.5, commute:true },
+  { key:"wed", short:"WED", label:"Wednesday", college:"05:30 – 15:00", skills:2.0, study:1.5, content:2.0, contentType:"Type 1 — AI / Avatar", talk:1.5, commute:true },
+  { key:"thu", short:"THU", label:"Thursday", college:"05:30 – 15:00", skills:2.0, study:1.5, content:2.0, contentType:"Type 2 — Self-Filming", talk:1.5, commute:true },
+  { key:"fri", short:"FRI", label:"Friday", college:"08:30 – 15:00", skills:2.0, study:1.5, content:2.5, contentType:"Type 1+2 — Hybrid", talk:1.5, commute:true },
+  { key:"sat", short:"SAT", label:"Saturday", college:"05:30 – 13:00", skills:3.0, study:2.0, content:2.5, contentType:"Type 2 — Self-Filming Only", talk:1.5, commute:true },
+  { key:"sun", short:"SUN", label:"Sunday", college:null, skills:5.0, study:2.0, content:4.0, contentType:"Type 1+3 — AI & Python", talk:1.5, commute:false },
+];
+const FOCUS_SECONDS = 45 * 60;
+const BLOCK_HOURS = 0.75;
+
+function emptyProgress(){
+  return { skills:0, study:0, content:0, talk:0, collegeAttended:false, sleepNight:0, sleepNap:0, exerciseMin:0,
+    meals:{ breakfast:false, lunch:false, snack:false, dinner:false },
+    dayNote:"", notes:{ college:"", skills:"", study:"", content:"", talk:"" } };
+}
+function isoDate(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${dd}`; }
+function todayIso(){ return isoDate(new Date()); }
+function templateForDate(dateStr){ const d=new Date(dateStr+"T00:00:00"); const jsDay=d.getDay(); const idx = jsDay===0?6:jsDay-1; return WEEK[idx]; }
+function getCurrentWeekDates(){
+  const today = new Date(); const jsDay = today.getDay(); const diff = jsDay===0?-6:1-jsDay;
+  const monday = new Date(today); monday.setDate(today.getDate()+diff);
+  const out = []; for(let i=0;i<7;i++){ const d=new Date(monday); d.setDate(monday.getDate()+i); out.push(isoDate(d)); }
+  return out;
+}
+function loadProgress(dateStr){
+  try { const raw = localStorage.getItem(`chronos:progress:${dateStr}`); if(raw) return {...emptyProgress(), ...JSON.parse(raw)}; } catch(e){}
+  return emptyProgress();
+}
+function saveProgress(dateStr, data){ try { localStorage.setItem(`chronos:progress:${dateStr}`, JSON.stringify(data)); } catch(e){} }
+
+/* ---------- voice journal (IndexedDB, since clips are binary and can be large) ---------- */
+const VDB_NAME = "chronosVoiceDB", VDB_STORE = "clips";
+function openVoiceDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(VDB_NAME, 1);
+    req.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(VDB_STORE)){
+        const store = db.createObjectStore(VDB_STORE, { keyPath: "id" });
+        store.createIndex("date", "date", { unique: false });
+      }
+    };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function addVoiceClip(dateStr, blob){
+  const db = await openVoiceDB();
+  const id = `${dateStr}_${Date.now()}`;
+  const timeLabel = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(VDB_STORE, "readwrite");
+    tx.objectStore(VDB_STORE).put({ id, date: dateStr, blob, timeLabel, createdAt: Date.now() });
+    tx.oncomplete = ()=>resolve(id);
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+async function getVoiceClips(dateStr){
+  const db = await openVoiceDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(VDB_STORE, "readonly");
+    const req = tx.objectStore(VDB_STORE).index("date").getAll(dateStr);
+    req.onsuccess = ()=>resolve(req.result.sort((a,b)=>a.createdAt-b.createdAt));
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function deleteVoiceClip(id){
+  const db = await openVoiceDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(VDB_STORE, "readwrite");
+    tx.objectStore(VDB_STORE).delete(id);
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+function dayCompletion(p, t){
+  const skills = Math.min(p.skills/t.skills,1), study=Math.min(p.study/t.study,1),
+        content=Math.min(p.content/t.content,1), talk=Math.min(p.talk/t.talk,1);
+  let sum = skills+study+content+talk, count = 4, college = 1;
+  if(t.college){ college = p.collegeAttended?1:0; sum += college; count += 1; }
+  return { overall: sum/count, skills, study, content, talk, college };
+}
+
+/* ---------- state ---------- */
+const weekDates = getCurrentWeekDates();
+let selectedDate = todayIso();
+let progress = loadProgress(selectedDate);
+let commuteMode = "morning";
+let focusDomain = "skills";
+let secondsLeft = FOCUS_SECONDS;
+let running = false;
+let timerHandle = null;
+
+/* ---------- flap renderer ---------- */
+function renderFlap(container, text){
+  container.innerHTML = "";
+  for(const c of text){
+    const el = document.createElement("div");
+    if(c === " "){ el.className = "flap space"; el.style.width = "0.4em"; }
+    else { el.className = "flap"; const span=document.createElement("span"); span.textContent = c; el.appendChild(span); }
+    container.appendChild(el);
+  }
+}
+
+/* ---------- ring renderer ---------- */
+function ringSVG(id, pct, color, iconHTML, label, sub, size=80, stroke=7){
+  const r=(size-stroke)/2, c=2*Math.PI*r, offset=c*(1-Math.min(Math.max(pct,0),1));
+  return `<div class="ring-wrap">
+    <div style="position:relative;width:${size}px;height:${size}px;">
+      <svg width="${size}" height="${size}" style="transform:rotate(-90deg);">
+        <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="#1F1F1F" stroke-width="${stroke}" fill="none"/>
+        <circle id="ringcircle-${id}" data-circumference="${c}" cx="${size/2}" cy="${size/2}" r="${r}" stroke="${color}" stroke-width="${stroke}" fill="none"
+          stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round" style="transition:stroke-dashoffset .2s ease;"/>
+      </svg>
+      <div class="ring-icon">${iconHTML}</div>
+    </div>
+    <div style="text-align:center;line-height:1.3;">
+      <div class="ring-label">${label}</div>
+      <div class="ring-sub" id="ringsub-${id}">${sub}</div>
+    </div>
+  </div>`;
+}
+function updateRingDisplay(id, pct, subText){
+  const circle = document.getElementById(`ringcircle-${id}`);
+  const sub = document.getElementById(`ringsub-${id}`);
+  if(circle){
+    const c = parseFloat(circle.dataset.circumference);
+    circle.style.strokeDashoffset = c * (1 - Math.min(Math.max(pct,0),1));
+  }
+  if(sub) sub.textContent = subText;
+}
+const ICONS = {
+  college: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg>`,
+  skills: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 5a3 3 0 1 0-5.5 1.7A3 3 0 0 0 5 9.5a3 3 0 0 0 1.5 5A3 3 0 0 0 8 20a3 3 0 0 0 4-1.5"/><path d="M12 5a3 3 0 1 1 5.5 1.7A3 3 0 0 1 19 9.5a3 3 0 0 1-1.5 5A3 3 0 0 1 16 20a3 3 0 0 1-4-1.5"/></svg>`,
+  study: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>`,
+  content: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="m22 8-5 3.5L22 15V8Z"/></svg>`,
+  talk: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3"/></svg>`,
+};
+
+/* ---------- main render ---------- */
+function render(){
+  const day = templateForDate(selectedDate);
+  const isToday = selectedDate === todayIso();
+  const dNow = new Date(selectedDate+"T00:00:00");
+  const dateStr = `${String(dNow.getDate()).padStart(2,"0")} ${dNow.toLocaleString("en-US",{month:"short"}).toUpperCase()}`;
+
+  renderFlap(document.getElementById("flapHeader"), `${day.short} ${dateStr}`);
+
+  const notToday = document.getElementById("notToday");
+  if(!isToday){ notToday.style.display="block"; notToday.textContent = `Viewing ${day.label}, ${dateStr} — not today. Tap "Today" below to jump back.`; }
+  else notToday.style.display = "none";
+
+  const todayBtn = document.getElementById("todayBtn");
+  todayBtn.style.display = isToday ? "none" : "inline-block";
+
+  // week strip
+  const weekAvg = weekDates.reduce((s,d)=>s+dayCompletion(loadProgress(d), templateForDate(d)).overall,0)/weekDates.length;
+  document.getElementById("weekAvg").textContent = `${Math.round(weekAvg*100)}%`;
+
+  const strip = document.getElementById("weekStrip"); strip.innerHTML = "";
+  weekDates.forEach((d)=>{
+    const t = templateForDate(d);
+    const p = d === selectedDate ? progress : loadProgress(d);
+    const c = dayCompletion(p, t);
+    const dNum = new Date(d+"T00:00:00").getDate();
+    const active = d === selectedDate, isTod = d === todayIso();
+    const col = document.createElement("div");
+    col.className = "day-col" + (active?" active":"") + (isTod?" today":"");
+    col.innerHTML = `
+      <div class="dname">${t.short}</div>
+      <div class="dnum">${dNum}</div>
+      <div class="bars">
+        ${bar(c.college,"#3182CE","college",d)}${bar(c.skills,"#3182CE","skills",d)}${bar(c.study,"#3182CE","study",d)}${bar(c.content,"#D9A54D","content",d)}${bar(c.talk,"#4FA8A0","talk",d)}
+      </div>
+      <div class="pct" id="weekpct-${d}">${Math.round(c.overall*100)}%</div>`;
+    col.onclick = ()=>{
+      if(isRecording){ mediaRecorder.stop(); isRecording = false; }
+      selectedDate = d; progress = loadProgress(selectedDate); running=false; secondsLeft=FOCUS_SECONDS;
+      clearInterval(timerHandle);
+      render(); renderVoiceClips();
+    };
+    strip.appendChild(col);
+  });
+
+  function bar(pct,color,domain,date){ return `<div class="bar-track"><div class="bar-fill" id="weekbar-${date}-${domain}" style="height:${Math.min(Math.max(pct,0),1)*100}%;background:${color};"></div></div>`; }
+
+  // rings
+  document.getElementById("ringsGrid").innerHTML =
+    ringSVG("college", day.college ? (progress.collegeAttended?1:0) : 1, day.college?"#3182CE":"#3A3A3A", ICONS.college, "College", day.college ? (progress.collegeAttended?"Attended":day.college) : "Free day") +
+    ringSVG("skills", progress.skills/day.skills, "#3182CE", ICONS.skills, "Skills", `${Math.round(progress.skills*60)}/${Math.round(day.skills*60)} min`) +
+    ringSVG("study", progress.study/day.study, "#3182CE", ICONS.study, "Study", `${Math.round(progress.study*60)}/${Math.round(day.study*60)} min`) +
+    ringSVG("content", progress.content/day.content, "#D9A54D", ICONS.content, "Content", `${Math.round(progress.content*60)}/${Math.round(day.content*60)} min`) +
+    ringSVG("talk", progress.talk/day.talk, "#4FA8A0", ICONS.talk, "Talk", `${Math.round(progress.talk*60)}/${Math.round(day.talk*60)} min`);
+
+  // focus toggle buttons
+  const ft = document.getElementById("focusToggle"); ft.innerHTML = "";
+  ["skills","study"].forEach(f=>{
+    const b = document.createElement("button");
+    b.className = "btn" + (focusDomain===f ? " primary":"");
+    b.textContent = f[0].toUpperCase()+f.slice(1);
+    b.style.padding = "6px 10px"; b.style.fontSize="11px";
+    b.onclick = ()=>{ if(!running){ focusDomain = f; render(); } };
+    ft.appendChild(b);
+  });
+  updateTimerDisplay();
+
+  // commute card
+  const commuteBody = document.getElementById("commuteBody");
+  const commuteCard = document.getElementById("commuteCard");
+  if(!day.commute){
+    commuteCard.style.background = "#0A0A0A"; commuteCard.style.borderColor = "#262626";
+    commuteBody.innerHTML = `<div class="muted" style="font-style:italic;">No scheduled commute today — full deep-work window.</div>`;
+  } else {
+    const evening = commuteMode === "evening";
+    commuteCard.style.background = evening ? "#1A1108" : "#0A0A0A";
+    commuteCard.style.borderColor = evening ? "#3D2E1E" : "#262626";
+    commuteBody.innerHTML = `
+      <div class="toggle-row">
+        <button class="btn ${commuteMode==='morning'?'primary':''}" id="morningBtn">☀ Morning Study</button>
+        <button class="btn ${commuteMode==='evening'?'amber':''}" id="eveningBtn">🌆 Evening Rest</button>
+      </div>
+      <div class="flap-row" id="commuteFlap" style="font-size:0.95rem;"></div>
+      <div class="muted" style="margin-top:10px;">${evening ? "Alerts paused. No targets to hit here — just unwind." : "Train window optimized for 45-minute sprint blocks — log them via the Focus Sprint card."}</div>`;
+    renderFlap(document.getElementById("commuteFlap"), evening ? "2H GUILT-FREE" : "2H DEEP STUDY");
+    document.getElementById("morningBtn").onclick = ()=>{ commuteMode="morning"; render(); };
+    document.getElementById("eveningBtn").onclick = ()=>{ commuteMode="evening"; render(); };
+  }
+  document.body.style.background = (day.commute && commuteMode==="evening")
+    ? "radial-gradient(ellipse at top, #241C14 0%, #000000 62%)" : "#000000";
+
+  // manual hour controls: Skills, Study, Content, Talk — slider + typeable number, both editable
+  bindHourControl("skills", "skillsSlider", "skillsInput", day.skills);
+  document.getElementById("skillsTarget").textContent = `Target ${Math.round(day.skills*60)} min today · or use the Focus Sprint timer`;
+
+  bindHourControl("study", "studySlider", "studyInput", day.study);
+  document.getElementById("studyTarget").textContent = `Target ${Math.round(day.study*60)} min today · or use the Focus Sprint timer`;
+
+  document.getElementById("contentLabel").textContent = `Editing / Content — ${day.contentType}`;
+  bindHourControl("content", "contentSlider", "contentInput", day.content);
+  document.getElementById("contentTarget").textContent = `Target ${Math.round(day.content*60)} min today`;
+
+  bindHourControl("talk", "talkSlider", "talkInput", day.talk);
+
+  // lifestyle
+  document.getElementById("sleepNight").value = progress.sleepNight;
+  document.getElementById("sleepNap").value = progress.sleepNap;
+  document.getElementById("exerciseMin").value = progress.exerciseMin;
+  document.getElementById("sleepBar").style.width = `${Math.min((progress.sleepNight+progress.sleepNap)/8,1)*100}%`;
+  document.getElementById("exerciseBar").style.width = `${Math.min(progress.exerciseMin/30,1)*100}%`;
+  document.getElementById("sleepNight").oninput = (e)=>{ progress.sleepNight = parseFloat(e.target.value)||0; persist(); };
+  document.getElementById("sleepNap").oninput = (e)=>{ progress.sleepNap = parseFloat(e.target.value)||0; persist(); };
+  document.getElementById("exerciseMin").oninput = (e)=>{ progress.exerciseMin = parseInt(e.target.value)||0; persist(); };
+
+  const mealsGrid = document.getElementById("mealsGrid"); mealsGrid.innerHTML = "";
+  ["breakfast","lunch","snack","dinner"].forEach(m=>{
+    const b = document.createElement("button");
+    b.className = "meal-btn" + (progress.meals[m] ? " done":"");
+    b.textContent = (progress.meals[m]?"✓ ":"") + m;
+    b.onclick = ()=>{ progress.meals[m] = !progress.meals[m]; persist(); };
+    mealsGrid.appendChild(b);
+  });
+
+  // college card
+  const collegeCard = document.getElementById("collegeCard");
+  if(day.college){
+    collegeCard.style.display = "flex";
+    document.getElementById("collegeTime").textContent = day.college;
+    const cb = document.getElementById("collegeBtn");
+    cb.textContent = progress.collegeAttended ? "Attended ✓" : "Mark attended";
+    cb.className = "btn" + (progress.collegeAttended ? " primary":"");
+    cb.onclick = ()=>{ progress.collegeAttended = !progress.collegeAttended; persist(); };
+  } else {
+    collegeCard.style.display = "none";
+  }
+
+  document.getElementById("todayBtn").onclick = ()=>{ selectedDate = todayIso(); progress = loadProgress(selectedDate); render(); renderVoiceClips(); };
+
+  // day journal
+  const dayNoteEl = document.getElementById("dayNote");
+  if(document.activeElement !== dayNoteEl) dayNoteEl.value = progress.dayNote || "";
+  dayNoteEl.oninput = (e)=>{ progress.dayNote = e.target.value; saveProgress(selectedDate, progress); };
+
+  // per-task notes (skip rebuilding while a note is actively focused, so typing isn't interrupted by timer re-renders)
+  const taskNotes = document.getElementById("taskNotes");
+  const focusedInside = taskNotes.contains(document.activeElement) && document.activeElement.tagName === "TEXTAREA";
+  if(!focusedInside){
+    taskNotes.innerHTML = "";
+    const domainLabels = [
+      ["college","College"], ["skills","Skills"], ["study","Study"], ["content","Content"], ["talk","Talk"]
+    ];
+    domainLabels.forEach(([key,label])=>{
+      const field = document.createElement("div");
+      field.className = "note-field";
+      field.innerHTML = `<div class="note-field-label">${label}</div><textarea rows="2" placeholder="Notes on ${label.toLowerCase()}..."></textarea>`;
+      const ta = field.querySelector("textarea");
+      ta.value = progress.notes[key] || "";
+      ta.oninput = (e)=>{ progress.notes[key] = e.target.value; saveProgress(selectedDate, progress); };
+      taskNotes.appendChild(field);
+    });
+  }
+}
+
+/* ---------- voice journal UI ---------- */
+let activeStream = null, mediaRecorder = null, recordedChunks = [], isRecording = false;
+let clipObjectUrls = [];
+
+async function renderVoiceClips(){
+  clipObjectUrls.forEach((u)=>URL.revokeObjectURL(u));
+  clipObjectUrls = [];
+  const list = document.getElementById("clipList");
+  let clips = [];
+  try { clips = await getVoiceClips(selectedDate); } catch(e){ clips = []; }
+  if(clips.length === 0){
+    list.innerHTML = `<div class="clip-empty">No recordings yet for this day — tap "Start recording" to add your first tape.</div>`;
+    return;
+  }
+  list.innerHTML = "";
+  clips.forEach((clip)=>{
+    const url = URL.createObjectURL(clip.blob);
+    clipObjectUrls.push(url);
+    const row = document.createElement("div");
+    row.className = "clip-row";
+    row.innerHTML = `<span class="clip-time">${clip.timeLabel}</span><audio controls src="${url}"></audio><button class="clip-del" title="Delete">✕</button>`;
+    row.querySelector(".clip-del").onclick = async ()=>{ await deleteVoiceClip(clip.id); renderVoiceClips(); };
+    list.appendChild(row);
+  });
+}
+
+function setRecordingUI(active){
+  const btn = document.getElementById("recBtn");
+  const label = document.getElementById("recBtnLabel");
+  btn.classList.toggle("active", active);
+  label.textContent = active ? "Stop recording" : "Start recording";
+}
+
+document.getElementById("recBtn").addEventListener("click", async ()=>{
+  const warning = document.getElementById("micWarning");
+  if(!isRecording){
+    try {
+      activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      warning.style.display = "none";
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(activeStream);
+      mediaRecorder.ondataavailable = (e)=>{ if(e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = async ()=>{
+        const blob = new Blob(recordedChunks, { type: "audio/webm" });
+        await addVoiceClip(selectedDate, blob);
+        activeStream.getTracks().forEach((t)=>t.stop());
+        activeStream = null;
+        renderVoiceClips();
+      };
+      mediaRecorder.start();
+      isRecording = true;
+      setRecordingUI(true);
+    } catch(err){
+      warning.style.display = "block";
+    }
+  } else {
+    mediaRecorder.stop();
+    isRecording = false;
+    setRecordingUI(false);
+  }
+});
+
+function persist(){ saveProgress(selectedDate, progress); render(); }
+
+function updateTimerDisplay(){
+  renderFlap(document.getElementById("timerFlap"), `${String(Math.floor(secondsLeft/60)).padStart(2,"0")}:${String(secondsLeft%60).padStart(2,"0")}`);
+  document.getElementById("startBtn").textContent = running ? "⏸ Pause" : "▶ Start";
+}
+
+function bindHourControl(field, sliderId, inputId, targetHours){
+  const slider = document.getElementById(sliderId);
+  const input = document.getElementById(inputId);
+  const targetMin = Math.round(targetHours * 60);
+  slider.min = 0; slider.max = targetMin; slider.step = 5;
+  input.min = 0; input.max = targetMin; input.step = 5;
+  const focused = document.activeElement === input || document.activeElement === slider;
+  const currentMin = Math.round(progress[field] * 60);
+  if(!focused){
+    slider.value = currentMin;
+    input.value = currentMin;
+  }
+  // Lightweight live update while dragging/typing — patches only this ring + this
+  // day's week-strip column directly, instead of rebuilding the whole page every tick.
+  const liveUpdate = (mins)=>{
+    progress[field] = mins / 60;
+    input.value = mins;
+    updateRingDisplay(field, progress[field] / targetHours, `${mins}/${targetMin} min`);
+    updateWeekColumn(selectedDate);
+  };
+  slider.oninput = (e)=>{ liveUpdate(parseFloat(e.target.value)); };
+  slider.onchange = ()=>{ saveProgress(selectedDate, progress); updateWeekAvgHeader(); };
+  input.oninput = (e)=>{
+    let mins = parseFloat(e.target.value);
+    if(isNaN(mins)) mins = 0;
+    mins = Math.max(0, Math.min(mins, targetMin));
+    slider.value = mins;
+    liveUpdate(mins);
+    saveProgress(selectedDate, progress);
+    updateWeekAvgHeader();
+  };
+  input.onblur = ()=>{ input.value = Math.round(progress[field] * 60); };
+}
+
+/* ---------- timer ---------- */
+document.getElementById("startBtn").addEventListener("click", ()=>{
+  running = !running;
+  if(running){
+    timerHandle = setInterval(()=>{
+      secondsLeft -= 1;
+      if(secondsLeft <= 0){
+        clearInterval(timerHandle); running = false;
+        progress[focusDomain] = +(progress[focusDomain] + BLOCK_HOURS).toFixed(2);
+        saveProgress(selectedDate, progress);
+        secondsLeft = FOCUS_SECONDS;
+        const fm = document.getElementById("flashMsg");
+        fm.style.display = "block";
+        fm.textContent = `+45 min logged to ${focusDomain==="skills"?"Skills":"Study"}`;
+        setTimeout(()=>{ fm.style.display="none"; }, 3200);
+        render(); // full refresh: rings/week strip actually changed
+      } else {
+        updateTimerDisplay(); // cheap: just the countdown digits, every second
+      }
+    }, 1000);
+  } else {
+    clearInterval(timerHandle);
+  }
+  render();
+});
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  clearInterval(timerHandle); running=false; secondsLeft = FOCUS_SECONDS; render();
+});
+
+/* ---------- register service worker for installability ---------- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{ navigator.serviceWorker.register("./service-worker.js").catch(()=>{}); });
+}
+
+render();
+renderVoiceClips();
+</script>
+</body>
+</html>
